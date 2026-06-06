@@ -1,8 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class BaseRecord(BaseModel):
-    objectid: int
+    model_config = {"populate_by_name": True}
+    
+    objectid: int = Field(alias="OBJECTID")
     es_estimado: int | None
     precio_m2: float | None
     precio_medio: float | None
@@ -12,7 +14,6 @@ class BaseRecord(BaseModel):
     tipo_construccion_id: int | None
     clase_finca_urbana_id: int | None
     snapshot_date: str
-
 
 class NacionalRecord(BaseRecord):
     nac_id: int | None
