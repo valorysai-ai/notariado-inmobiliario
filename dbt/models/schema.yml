@@ -1,21 +1,51 @@
-
 version: 2
 
 models:
-  - name: my_first_dbt_model
-    description: "A starter dbt model"
+  - name: stg_nacional
+    description: "Precio medio por m² a nivel nacional por tipo de construcción y clase de finca"
     columns:
-      - name: id
-        description: "The primary key for this table"
-        data_tests:
-          - unique
+      - name: objectid
+        description: "ID interno de ArcGIS"
+      - name: nac_id
+        description: "ID interno nacional — siempre 1"
+      - name: tipo_construccion_id
+        description: "Tipo de construcción (7=New home, 9=Second hand, 99=All)"
+        tests:
           - not_null
-
-  - name: my_second_dbt_model
-    description: "A starter dbt model"
-    columns:
-      - name: id
-        description: "The primary key for this table"
-        data_tests:
-          - unique
+          - accepted_values:
+              name: tipo_construccion_id_accepted
+              values: [7, 9, 99]
+      - name: clase_finca_urbana_id
+        description: "Clase de finca urbana (14=Flat, 15=House, 99=All)"
+        tests:
+          - not_null
+          - accepted_values:
+              name: clase_finca_urbana_id_accepted
+              values: [14, 15, 99]
+      - name: precio_m2
+        description: "Precio medio por metro cuadrado en euros"
+        tests:
+          - not_null
+      - name: precio_medio
+        description: "Precio medio total de la operación en euros"
+      - name: superficie_media
+        description: "Superficie media en metros cuadrados"
+      - name: total_informados
+        description: "Operaciones con precio informado"
+        tests:
+          - not_null
+      - name: total
+        description: "Total de operaciones escrituradas"
+        tests:
+          - not_null
+      - name: es_estimado
+        description: "1 si el dato es estimado, 0 si es real"
+        tests:
+          - not_null
+          - accepted_values:
+              name: es_estimado_accepted
+              values: [0, 1]
+      - name: snapshot_date
+        description: "Fecha de extracción del dato"
+        tests:
           - not_null
