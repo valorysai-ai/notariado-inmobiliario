@@ -1,6 +1,6 @@
 with source as (
     select * from read_parquet(
-        'data/raw/codigo_postal/*/data.parquet'
+        '{{ var("project_root") }}/data/raw/codigo_postal/*/data.parquet'
     )
 ),
 
