@@ -1,0 +1,90 @@
+name: Monthly Data Pipeline
+
+on:
+  schedule:
+    - cron: '0 3 1 * *'  # Día 1 de cada mes a las 3am UTC
+  workflow_dispatch:       # Permite ejecutarlo manualmente desde GitHub
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install hatchling
+          pip install -e ".[dev]"
+          pip install dbt-duckdb pandas numpy
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          ARCGIS_BASE_URL=${{ secrets.ARCGIS_BASE_URL }}
+          DATA_DIR=./data
+          DUCKDB_PATH=./data/warehouse.duckdb
+          REQUEST_DELAY_SECONDS=2
+          MAX_RETRIES=3
+          LOG_LEVEL=INFO
+          EOF
+
+      - name: Create dbt profiles
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml << EOF
+          notariado:
+            outputs:
+              dev:
+                type: duckdb
+                path: /home/runner/work/notariado-inmobiliario/notariado-inmobiliario/data/warehouse.duckdb
+                threads: 4
+            target: dev
+          EOF
+
+      - name: Create data directories
+        run: mkdir -p data/raw
+
+      - name: Run ingestion — nacional
+        run: python -m ingestion.src.cli --layers nacional
+
+      - name: Run ingestion — ccaa
+        run: python -m ingestion.src.cli --layers ccaa
+
+      - name: Run ingestion — provincia
+        run: python -m ingestion.src.cli --layers provincia
+
+      - name: Run ingestion — municipio
+        run: python -m ingestion.src.cli --layers municipio
+
+      - name: Run ingestion — codigo_postal
+        run: python -m ingestion.src.cli --layers codigo_postal
+
+      - name: Run dbt
+        run: |
+          cd dbt
+          dbt deps
+          dbt seed
+          dbt run
+
+      - name: Export JSON
+        run: python ingestion/src/export_json.py
+
+      - name: Push JSON to frontend repo
+        env:
+          FRONTEND_TOKEN: ${{ secrets.FRONTEND_REPO_TOKEN }}
+        run: |
+          git clone https://x-access-token:${FRONTEND_TOKEN}@github.com/valorysai-ai/notariado-frontend.git /tmp/frontend
+          cp frontend/data/precios.json /tmp/frontend/data/precios.json
+          cd /tmp/frontend
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add data/precios.json
+          git diff --staged --quiet || git commit -m "chore: update precios.json $(date +'%Y-%m')"
+          git push
