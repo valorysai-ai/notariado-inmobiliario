@@ -70,10 +70,9 @@ jobs:
 
       - name: Run dbt
         run: |
-          cd dbt
-          dbt deps
-          dbt seed
-          dbt run
+          dbt deps --project-dir dbt --profiles-dir ~/.dbt
+          dbt seed --project-dir dbt --profiles-dir ~/.dbt
+          dbt run --project-dir dbt --profiles-dir ~/.dbt
 
       - name: Export JSON
         run: python ingestion/src/export_json.py
