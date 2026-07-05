@@ -49,7 +49,9 @@ jobs:
           EOF
 
       - name: Create data directories
-        run: mkdir -p data/raw
+        run: |
+          mkdir -p data/raw
+          mkdir -p frontend/data
 
       - name: Run ingestion — nacional
         run: python -m ingestion.src.cli --layers nacional
